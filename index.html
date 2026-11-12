@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lavagem de Motores</title>
+<meta name="theme-color" content="#0b5cad">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: folha de registo de hangar. Cabeçalho, amostra do tanque, dois motores lado a lado em tablet, acções fixas em baixo. */
+  --bg:#eef1f4; --surface:#ffffff; --ink:#15202b; --muted:#5a6978; --line:#cfd7df;
+  --accent:#0b5cad; --accent-ink:#ffffff; --ok:#1d7a4c; --bad:#b3261e; --field:#f7f9fb;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10161c; --surface:#18212a; --ink:#e6edf3; --muted:#93a1af; --line:#2c3945;
+    --accent:#5aa7f0; --accent-ink:#08131d; --ok:#55c08a; --bad:#f2867f; --field:#111920;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10161c; --surface:#18212a; --ink:#e6edf3; --muted:#93a1af; --line:#2c3945;
+  --accent:#5aa7f0; --accent-ink:#08131d; --ok:#55c08a; --bad:#f2867f; --field:#111920;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.4;padding:16px 16px 120px}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+h1{font-size:1.35rem;font-weight:600;margin:0;text-wrap:balance}
+.ver{font-family:var(--mono);font-size:.8rem;font-weight:500;color:var(--muted);margin-left:8px;white-space:nowrap}
+.chip{font-family:var(--mono);font-size:.85rem;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted)}
+.chip.done{color:var(--ok);border-color:var(--ok)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+.card h2{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 10px}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted)}
+input{font:inherit;color:var(--ink);background:var(--field);border:1.5px solid var(--line);border-radius:8px;padding:10px;min-height:48px;width:100%}
+input:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+.engines{display:grid;grid-template-columns:1fr;gap:14px}
+@media (min-width:720px){.engines{grid-template-columns:1fr 1fr}}
+.grid{display:grid;grid-template-columns:44px repeat(3,1fr);gap:8px;align-items:center}
+.grid .h{font-size:.78rem;font-weight:600;color:var(--muted);text-align:center}
+.grid .n{font-family:var(--mono);font-weight:600;font-size:1.05rem;text-align:center;color:var(--muted)}
+.grid .n.full{color:var(--ok)}
+input.v{font-family:var(--mono);font-weight:500;font-size:1.15rem;text-align:center;font-variant-numeric:tabular-nums;padding:10px 4px}
+input.v:disabled{opacity:.6;background:transparent;border-style:dashed;color:var(--muted)}
+.st{margin:10px 0 0;font-size:.9rem;min-height:1.3em;color:var(--muted)}
+.st.ok{background:var(--ok);color:var(--surface);font-weight:600;padding:10px 12px;border-radius:8px;font-size:1rem}
+.card.done{border:2px solid var(--ok)}
+.card.done h2{color:var(--ok)}
+.card.done h2::after{content:"OK \2713";float:right;background:var(--ok);color:var(--surface);padding:2px 10px;border-radius:999px;letter-spacing:.04em}
+input.v.hit{border-color:var(--ok);border-width:2.5px}
+.st.warn{color:var(--bad)}
+input.v.bad{border-color:var(--bad);color:var(--bad)}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px}
+.bar .in{max-width:980px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;font-weight:600;min-height:48px;padding:0 14px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;flex:1 1 auto}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.small{min-height:40px;flex:0 0 auto;font-weight:500;font-size:.9rem}
+button.danger{color:var(--bad)}
+#msg{font-size:.9rem;color:var(--ok);min-height:1.3em;margin:0}
+#msg.err{color:var(--bad)}
+.hist{display:flex;flex-direction:column;gap:8px}
+.hist .row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between;border-top:1px solid var(--line);padding-top:8px}
+.hist .t{font-family:var(--mono);font-size:.9rem;overflow-wrap:anywhere}
+.hist .b{display:flex;gap:6px}
+.note{font-size:.82rem;color:var(--muted);margin:0}
+textarea{width:100%;min-height:150px;font-family:var(--mono);font-size:.85rem;color:var(--ink);background:var(--field);border:1.5px solid var(--line);border-radius:8px;padding:10px}
+.top{display:grid;grid-template-columns:1fr;gap:14px}
+/* Tablet de serviço em paisagem (10,1", cerca de 1280 px de largura): tudo num ecrã, alvos de toque maiores */
+@media (min-width:1000px){
+  body{padding:12px 20px 96px}
+  .wrap,.bar .in{max-width:1240px}
+  .wrap{gap:12px}
+  .top{grid-template-columns:1.5fr 1fr}
+  .card{padding:12px 16px}
+  .grid{grid-template-columns:52px repeat(3,1fr);gap:8px 12px}
+  input.v{min-height:52px;font-size:1.35rem}
+  .grid .n{font-size:1.25rem}
+  .grid .h{font-size:.9rem}
+  button{min-height:54px;font-size:1.05rem}
+}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Lavagem de Motores <span class="ver" id="ver"></span></h1>
+    <span class="chip" id="prog">0 / 27 valores</span>
+  </header>
+
+  <div class="top">
+  <section class="card">
+    <h2>Identificação</h2>
+    <div class="meta">
+      <label class="f" for="data">Data<input id="data" type="date"></label>
+      <label class="f" for="mat">Matrícula<input id="mat" type="text" autocapitalize="characters" autocomplete="off" placeholder="CS-"></label>
+      <label class="f" for="wo">WO / nota (opcional)<input id="wo" type="text" autocomplete="off"></label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Amostragem do tanque</h2>
+    <div class="grid" id="g-tank"></div>
+  </section>
+  </div>
+
+  <div class="engines">
+    <section class="card"><h2>Eng #1</h2><div class="grid" id="g-e1"></div><p class="st" id="st-e1"></p></section>
+    <section class="card"><h2>Eng #2</h2><div class="grid" id="g-e2"></div><p class="st" id="st-e2"></p></section>
+  </div>
+
+  <p id="msg" role="status" aria-live="polite"></p>
+
+  <section class="card" id="outCard" hidden>
+    <h2>Texto para copiar à mão</h2>
+    <textarea id="out" readonly></textarea>
+  </section>
+
+  <section class="card">
+    <h2>Registos guardados neste dispositivo</h2>
+    <div class="hist" id="hist"></div>
+    <p class="note" id="histNote">Ficam só neste browser. Copia cada registo para o Excel ou para as tuas notas antes de limpares os dados do browser.</p>
+  </section>
+</div>
+
+<div class="bar"><div class="in">
+  <button id="bTxt" type="button">Copiar texto</button>
+  <button id="bXls" type="button">Copiar para Excel</button>
+  <button id="bSave" type="button" class="primary">Guardar</button>
+  <button id="bNew" type="button">Nova lavagem</button>
+</div></div>
+
+<script>
+(function(){
+  /* Versão da app: aumentar a cada actualização publicada */
+  var VERSION="1.7", VDATE="12/11/2026";
+  document.getElementById("ver").textContent="v"+VERSION+" · "+VDATE;
+  var COLS=[["ppm","PPM"],["temp","Temp °C"],["ph","pH"]];
+  var GROUPS=[["tank","g-tank",["Tank"]],["e1","g-e1",["1","2","3","4"]],["e2","g-e2",["1","2","3","4"]]];
+  var KEY_D="lavagem.draft", KEY_H="lavagem.hist";
+  var $=function(id){return document.getElementById(id)};
+  var store={get:function(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},
+             set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+  GROUPS.forEach(function(g){
+    var el=$(g[1]), html='<span></span>';
+    COLS.forEach(function(c){html+='<span class="h">'+c[1]+'</span>'});
+    g[2].forEach(function(r,i){
+      html+='<span class="n" id="n-'+g[0]+'-'+i+'">'+(g[0]==="tank"?"T":r)+'</span>';
+      COLS.forEach(function(c){
+        var id=g[0]+'-'+i+'-'+c[0];
+        html+='<input class="v" id="'+id+'" type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" aria-label="'+(g[0]==="tank"?"Tanque":("Eng "+g[0].slice(1)+" passagem "+r))+' '+c[1]+'">';
+      });
+    });
+    el.innerHTML=html;
+  });
+
+  var vals=[].slice.call(document.querySelectorAll("input.v"));
+  var meta=["data","mat","wo"].map($);
+
+  function today(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)}
+  function num(s){s=(s||"").trim().replace(",",".");if(s==="")return null;return /^-?\d+(\.\d+)?$/.test(s)?parseFloat(s):NaN}
+  var curId=null;
+  function snapshot(){var o={};meta.concat(vals).forEach(function(i){o[i.id]=i.value.trim()});if(curId)o._id=curId;return o}
+  function dirty(){
+    var o=snapshot(); if(!filled(o))return false;
+    var s=hist().filter(function(h){return h._id&&h._id===curId})[0]; if(!s)return true;
+    return meta.concat(vals).some(function(i){return (s[i.id]||"")!==o[i.id]});
+  }
+  var LIM=150; /* lavagem concluída quando PPM da passagem menos PPM do tanque fica abaixo deste valor */
+  function fmt(d){return String(Math.round(d*100)/100).replace(".",",")}
+  function setNA(e,i,on){COLS.forEach(function(c){
+    var inp=$(e+"-"+i+"-"+c[0]);
+    if(on){if(!inp.disabled)inp.dataset.prev=inp.value;inp.value="N/A";inp.disabled=true}
+    else if(inp.disabled){inp.disabled=false;inp.value=(inp.dataset.prev&&inp.dataset.prev!=="N/A")?inp.dataset.prev:"";delete inp.dataset.prev}
+  })}
+  function status(get,e){ /* devolve passagem de conclusão (c), última passagem com PPM (last) e a sua diferença (d) */
+    var t=num(get("tank-0-ppm")),r={t:t,c:-1,last:-1,d:null};
+    if(t===null||isNaN(t))return r;
+    for(var i=0;i<4;i++){var p=num(get(e+"-"+i+"-ppm"));if(p===null||isNaN(p))continue;
+      r.last=i;r.d=p-t;if(r.d<LIM){r.c=i;break}}
+    return r;
+  }
+  function applyNA(){["e1","e2"].forEach(function(e){
+    for(var i=0;i<4;i++)setNA(e,i,false);
+    var r=status(function(id){return $(id).value},e);
+    if(r.c>=0)for(var j=r.c+1;j<4;j++)setNA(e,j,true);
+    var st=$("st-"+e),txt="",cls="st";
+    if(r.t===null||isNaN(r.t))txt="Preenche o PPM do tanque para calcular a diferença.";
+    else if(r.c>=0){txt="OK. Lavagem concluída na passagem "+(r.c+1)+": diferença "+fmt(r.d)+" ppm (abaixo de "+LIM+").";cls="st ok"}
+    else if(r.last===3){txt="Passagem 4: diferença "+fmt(r.d)+" ppm, ainda não abaixo de "+LIM+".";cls="st warn"}
+    else if(r.last>=0)txt="Passagem "+(r.last+1)+": diferença "+fmt(r.d)+" ppm. Continuar.";
+    st.textContent=txt;st.className=cls;
+    st.parentNode.classList.toggle("done",r.c>=0);
+    for(var k=0;k<4;k++)COLS.forEach(function(c){$(e+"-"+k+"-"+c[0]).classList.toggle("hit",k===r.c)});
+  })}
+  function load(o){curId=(o&&o._id)||null;vals.forEach(function(i){i.disabled=false;delete i.dataset.prev});meta.concat(vals).forEach(function(i){i.value=(o&&o[i.id])||""});if(!$("data").value)$("data").value=today();refresh()}
+
+  function refresh(){
+    var n=0;
+    applyNA();
+    vals.forEach(function(i){
+      if(i.disabled){i.classList.remove("bad");n++;return}
+      var v=num(i.value), bad=(v!==null&&isNaN(v))||(v!==null&&/-ph$/.test(i.id)&&(v<0||v>14));
+      i.classList.toggle("bad",!!bad); if(v!==null&&!bad)n++;
+    });
+    GROUPS.forEach(function(g){g[2].forEach(function(r,i){
+      var full=COLS.every(function(c){var el=$(g[0]+'-'+i+'-'+c[0]),v=num(el.value);return el.disabled||(v!==null&&!isNaN(v))});
+      $("n-"+g[0]+"-"+i).classList.toggle("full",full);
+    })});
+    $("prog").textContent=n+" / "+vals.length+" valores";
+    $("prog").classList.toggle("done",n===vals.length);
+  }
+  function say(t,err){$("msg").textContent=t;$("msg").classList.toggle("err",!!err)}
+
+  function v(o,id){return (o[id]||"").replace(".",",")||"-"}
+  function asText(o){
+    var L=["LAVAGEM DE MOTORES","Data: "+(o.data||"-")+"   Matrícula: "+(o.mat||"-")+(o.wo?"   WO/nota: "+o.wo:""),"",
+      "Tanque:  PPM "+v(o,"tank-0-ppm")+" | Temp "+v(o,"tank-0-temp")+" | pH "+v(o,"tank-0-ph")];
+    ["e1","e2"].forEach(function(e){L.push("","Eng #"+e.slice(1)+":");
+      for(var i=0;i<4;i++)L.push("  "+(i+1)+":  "+(o[e+"-"+i+"-ppm"]==="N/A"?"N/A":"PPM "+v(o,e+"-"+i+"-ppm")+" | Temp "+v(o,e+"-"+i+"-temp")+" | pH "+v(o,e+"-"+i+"-ph")));
+      var r=status(function(id){return o[id]||""},e);
+      if(r.c>=0)L.push("  Concluída na passagem "+(r.c+1)+" (diferença "+fmt(r.d)+" ppm, abaixo de "+LIM+")")});
+    return L.join("\n");
+  }
+  function x(o,id){return (o[id]||"").replace(".",",")}
+  function asTSV(o){ /* mesma disposição da folha Excel: A1:D5 Eng#1, F1:I5 Eng#2, A7:D8 Amostragem */
+    var R=[["Eng#1","PPM","Temp","PH","","Eng#2","PPM","Temp","PH"]];
+    for(var i=0;i<4;i++)R.push([i+1,x(o,"e1-"+i+"-ppm"),x(o,"e1-"+i+"-temp"),x(o,"e1-"+i+"-ph"),"",i+1,x(o,"e2-"+i+"-ppm"),x(o,"e2-"+i+"-temp"),x(o,"e2-"+i+"-ph")]);
+    R.push([]);R.push(["Amostragem","PPM","Temp","PH"]);
+    R.push(["Tank",x(o,"tank-0-ppm"),x(o,"tank-0-temp"),x(o,"tank-0-ph")]);
+    return R.map(function(r){return r.join("\t")}).join("\n");
+  }
+  function copy(text,okMsg){
+    function fallback(){$("outCard").hidden=false;$("out").value=text;$("out").focus();$("out").select();say("Não consegui copiar automaticamente. O texto está abaixo, selecciona e copia.",true)}
+    try{navigator.clipboard.writeText(text).then(function(){say(okMsg)},fallback)}catch(e){fallback()}
+  }
+
+  function hist(){return store.get(KEY_H)||[]}
+  function filled(o){return vals.filter(function(i){return o[i.id]}).length}
+  function renderHist(){
+    var h=hist(), el=$("hist"); el.innerHTML="";
+    if(!h.length){var p=document.createElement("p");p.className="note";p.textContent="Ainda não há registos guardados.";el.appendChild(p);return}
+    h.forEach(function(o,idx){
+      var row=document.createElement("div");row.className="row";
+      var t=document.createElement("span");t.className="t";t.textContent=(o.data||"sem data")+"  "+(o.mat||"sem matrícula")+"  ("+filled(o)+"/"+vals.length+")";
+      var b=document.createElement("div");b.className="b";
+      [["Abrir",function(){load(o);store.set(KEY_D,snapshot());say("Registo aberto. Guarda de novo se o alterares.");window.scrollTo(0,0)}],
+       ["Copiar",function(){copy(asText(o),"Registo copiado.")}],
+       ["Apagar",null]].forEach(function(d){
+        var bt=document.createElement("button");bt.type="button";bt.className="small"+(d[1]?"":" danger");bt.textContent=d[0];
+        bt.onclick=d[1]||function(){
+          if(bt.dataset.sure){var hh=hist();if(o._id&&o._id===curId)curId=null;hh.splice(idx,1);store.set(KEY_H,hh);renderHist();say("Registo apagado.")}
+          else{bt.dataset.sure="1";bt.textContent="Confirmar apagar";setTimeout(function(){delete bt.dataset.sure;bt.textContent="Apagar"},3000)}
+        };
+        b.appendChild(bt);
+      });
+      row.appendChild(t);row.appendChild(b);el.appendChild(row);
+    });
+  }
+
+  document.addEventListener("input",function(){refresh();store.set(KEY_D,snapshot())});
+  vals.forEach(function(i,idx){i.addEventListener("keydown",function(e){
+    if(e.key==="Enter"){e.preventDefault();var nx=vals.slice(idx+1).filter(function(q){return !q.disabled})[0];if(nx){nx.focus();nx.select()}else i.blur()}
+  })});
+  $("mat").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();vals[0].focus()}});
+
+  $("bTxt").onclick=function(){copy(asText(snapshot()),"Texto copiado. Cola onde precisares.")};
+  $("bXls").onclick=function(){copy(asTSV(snapshot()),"Copiado. No Excel, selecciona a célula A1 e cola.")};
+  $("bSave").onclick=function(){
+    var o=snapshot();
+    if(!filled(o)){say("Ainda não há valores para guardar.",true);return}
+    if(document.querySelector("input.v.bad")){say("Há valores inválidos a vermelho. Corrige antes de guardar.",true);return}
+    var bt=this,h=hist(),at=-1,oldId=curId;
+    var key=function(r){return (r.data||"")+"|"+(r.mat||"").toUpperCase().replace(/\s+/g,"")};
+    /* mesma matrícula e mesmo dia: grava por cima do registo existente */
+    if(o.mat)h.forEach(function(r,i){if(at<0&&key(r)===key(o))at=i});
+    if(at>=0&&(!curId||h[at]._id!==curId)&&!bt.dataset.sure){
+      bt.dataset.sure="1";bt.textContent="Substituir registo";
+      say("Já existe um registo de "+o.mat+" em "+o.data+". Toca outra vez para o substituir por estes valores.",true);
+      setTimeout(function(){delete bt.dataset.sure;bt.textContent="Guardar"},4000);return;
+    }
+    delete bt.dataset.sure;bt.textContent="Guardar";
+    if(at<0)h.forEach(function(r,i){if(curId&&r._id===curId)at=i});
+    curId=(at>=0&&h[at]._id)||curId||Date.now();
+    o._id=curId;
+    if(at>=0)h[at]=o;else h.unshift(o);
+    h=h.filter(function(r){return r===o||!oldId||r._id!==oldId});
+    store.set(KEY_H,h);store.set(KEY_D,o);renderHist();
+    say(at>=0?"Registo actualizado.":"Guardado. Podes continuar a preencher; guardar de novo actualiza este registo.");
+  };
+  $("bNew").onclick=function(){
+    var bt=this;
+    if(dirty()&&!bt.dataset.sure){
+      bt.dataset.sure="1";bt.textContent="Descartar e começar nova";
+      say("Há valores por guardar. Guarda primeiro, ou toca outra vez para os descartar.",true);
+      setTimeout(function(){delete bt.dataset.sure;bt.textContent="Nova lavagem"},4000);return;
+    }
+    delete bt.dataset.sure;bt.textContent="Nova lavagem";
+    load({});store.set(KEY_D,snapshot());say("Formulário limpo. Pronto para nova lavagem.");window.scrollTo(0,0);
+  };
+
+  load(store.get(KEY_D)||{});
+  renderHist();
+  /* Alojada num site próprio (ex.: GitHub Pages): fica instalável e funciona offline. Noutros sítios falha em silêncio. */
+  try{
+    if("serviceWorker" in navigator&&location.protocol==="https:")
+      navigator.serviceWorker.register("sw.js").then(function(){
+        var l=document.createElement("link");l.rel="manifest";l.href="manifest.webmanifest";document.head.appendChild(l);
+      }).catch(function(){});
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
